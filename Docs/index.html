@@ -383,7 +383,7 @@
                     const prompt = `You are BenAI, an intelligent avatar designed for hyper-personalized, interactive learning and roleplay training. A user is describing a training scenario. Generate a concise, engaging roleplay prompt (1-3 sentences) based on the following scenario for an employee to practice with an AI: "${userScenario}"`;
                     chatHistory.push({ role: "user", parts: [{ text: prompt }] });
                     const payload = { contents: chatHistory };
-                    const apiKey = "";
+                    const apiKey = "AIzaSyDwfdOgtoP6oyMeK--zkMwnTWoqKV1Vhhc";
                     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
                     const response = await fetch(apiUrl, {
