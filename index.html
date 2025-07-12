@@ -75,6 +75,35 @@
         .primary-btn:hover {
             background-color: #D46A4D;
         }
+        .chat-message {
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 0.5rem;
+            max-width: 90%;
+        }
+        .user-message {
+            background-color: var(--accent-light);
+            color: var(--text-dark);
+            align-self: flex-end;
+        }
+        .benai-message {
+            background-color: var(--accent);
+            color: white;
+            align-self: flex-start;
+        }
+        .benai-message ul {
+            list-style-type: disc;
+            margin-left: 1.25em;
+            padding-left: 0;
+        }
+        .benai-message ol {
+            list-style-type: decimal;
+            margin-left: 1.25em;
+            padding-left: 0;
+        }
+        .benai-message li {
+            margin-bottom: 0.5em;
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -168,20 +197,21 @@
             </div>
         </section>
 
-        <!-- Section 4: Interactive BenAI Demo -->
-        <section id="benai-demo" class="mb-16 md:mb-24">
-            <h2 class="text-3xl font-bold text-center section-title">✨ Experience BenAI's Intelligence</h2>
-            <p class="mt-3 mb-12 text-center section-subtitle">See how BenAI can instantly generate scenarios for personalized training. Describe a situation, and let BenAI create a relevant roleplay prompt for you.</p>
+        <!-- Section 4: BenAI FAQ Chatbot -->
+        <section id="benai-chatbot" class="mb-16 md:mb-24">
+            <h2 class="text-3xl font-bold text-center section-title">💬 Ask BenAI: Your Sales & Features Guide</h2>
+            <p class="mt-3 mb-12 text-center section-subtitle">Engage directly with BenAI! Ask questions about its features, benefits for SMEs, or how it can transform your organization's training. BenAI is ready to share its insights.</p>
             <div class="card">
-                <div class="flex flex-col items-center gap-6">
-                    <textarea id="scenarioInput" class="w-full p-4 rounded-lg border border-[var(--border-color)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] text-gray-800" rows="5" placeholder="Describe a training scenario, e.g., 'How to handle a customer complaint about a delayed delivery' or 'Practicing a performance review conversation.'"></textarea>
-                    <button id="generateScenarioBtn" class="primary-btn">
-                        ✨ Generate Roleplay Scenario
-                    </button>
-                    <div id="scenarioOutput" class="w-full p-6 rounded-lg bg-[var(--accent-light)] text-[var(--text-dark)] min-h-[120px] flex items-center justify-center text-center italic">
-                        Your generated roleplay scenario will appear here.
+                <div class="flex flex-col gap-4">
+                    <div id="chatHistory" class="flex flex-col gap-3 p-4 bg-gray-100 rounded-lg h-80 overflow-y-auto border border-gray-200">
+                        <div class="benai-message chat-message">Hello! I'm BenAI. How can I help you revolutionize your organization's training today? Feel free to ask about my features, benefits, or anything else!</div>
                     </div>
-                    <div id="loadingIndicator" class="hidden text-[var(--accent)] font-semibold">
+                    <div class="flex gap-2 mt-2">
+                        <input type="text" id="userQuestionInput" class="flex-grow p-3 rounded-lg border border-[var(--border-color)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] text-gray-800" placeholder="Ask BenAI a question...">
+                        <button id="sendMessageBtn" class="primary-btn px-6 py-3">Send</button>
+                        <button id="clearChatBtn" class="primary-btn px-6 py-3" style="background-color: #6A6E8D;">Clear</button>
+                    </div>
+                    <div id="chatLoading" class="hidden text-[var(--accent)] font-semibold text-center mt-2">
                         BenAI is thinking...
                     </div>
                 </div>
@@ -362,28 +392,45 @@
                 }
             });
 
-            // --- Gemini API Integration ---
-            const scenarioInput = document.getElementById('scenarioInput');
-            const generateScenarioBtn = document.getElementById('generateScenarioBtn');
-            const scenarioOutput = document.getElementById('scenarioOutput');
-            const loadingIndicator = document.getElementById('loadingIndicator');
+            // --- BenAI FAQ Chatbot Integration ---
+            const userQuestionInput = document.getElementById('userQuestionInput');
+            const sendMessageBtn = document.getElementById('sendMessageBtn');
+            const clearChatBtn = document.getElementById('clearChatBtn');
+            const chatHistoryContainer = document.getElementById('chatHistory');
+            const chatLoading = document.getElementById('chatLoading');
 
-            generateScenarioBtn.addEventListener('click', async () => {
-                const userScenario = scenarioInput.value.trim();
-                if (!userScenario) {
-                    scenarioOutput.textContent = "Please describe a training scenario to generate a roleplay prompt.";
-                    return;
+            let chatHistory = [
+                { role: "user", parts: [{ text: "You are BenAI, a human-centered AI avatar from Elevate Innovations. Your purpose is to sell your key features and outcomes for small to midsize organizations. Speak as BenAI, be confident, knowledgeable, and persuasive. Focus on how you revolutionize training, boost productivity, enhance skills, and provide measurable ROI. Keep responses concise but informative. When listing multiple things, use bullet points for clarity and organization." }] },
+                { role: "model", parts: [{ text: "Hello! I'm BenAI. How can I help you revolutionize your organization's training today? Feel free to ask about my features, benefits, or anything else!" }] }
+            ];
+
+            const renderMessage = (role, text) => {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('chat-message');
+                if (role === 'user') {
+                    messageDiv.classList.add('user-message');
+                } else {
+                    messageDiv.classList.add('benai-message');
                 }
+                // Use innerHTML to render markdown, including bullet points
+                messageDiv.innerHTML = marked.parse(text); 
+                chatHistoryContainer.appendChild(messageDiv);
+                chatHistoryContainer.scrollTop = chatHistoryContainer.scrollHeight; // Auto-scroll to bottom
+            };
 
-                scenarioOutput.textContent = '';
-                loadingIndicator.classList.remove('hidden');
+            const sendChatMessage = async () => {
+                const userMessage = userQuestionInput.value.trim();
+                if (!userMessage) return;
+
+                renderMessage('user', userMessage);
+                userQuestionInput.value = ''; // Clear input field
+
+                chatHistory.push({ role: "user", parts: [{ text: userMessage }] });
+                chatLoading.classList.remove('hidden');
 
                 try {
-                    let chatHistory = [];
-                    const prompt = `You are BenAI, an intelligent avatar designed for hyper-personalized, interactive learning and roleplay training. A user is describing a training scenario. Generate a concise, engaging roleplay prompt (1-3 sentences) based on the following scenario for an employee to practice with an AI: "${userScenario}"`;
-                    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
                     const payload = { contents: chatHistory };
-                    const apiKey = "AIzaSyDwfdOgtoP6oyMeK--zkMwnTWoqKV1Vhhc";
+                    const apiKey = ""; // This will be automatically provided by the Canvas environment.
                     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
                     const response = await fetch(apiUrl, {
@@ -396,19 +443,38 @@
                     if (result.candidates && result.candidates.length > 0 &&
                         result.candidates[0].content && result.candidates[0].content.parts &&
                         result.candidates[0].content.parts.length > 0) {
-                        const text = result.candidates[0].content.parts[0].text;
-                        scenarioOutput.textContent = text;
+                        const benaiResponseText = result.candidates[0].content.parts[0].text;
+                        renderMessage('model', benaiResponseText);
+                        chatHistory.push({ role: "model", parts: [{ text: benaiResponseText }] });
                     } else {
-                        scenarioOutput.textContent = "BenAI couldn't generate a scenario. Please try rephrasing your request.";
+                        renderMessage('model', "I apologize, I couldn't generate a response at this moment. Please try again.");
                     }
                 } catch (error) {
                     console.error('Error calling Gemini API:', error);
-                    scenarioOutput.textContent = "An error occurred while connecting to BenAI. Please try again later.";
+                    renderMessage('model', "An error occurred while connecting. Please check your API key and network connection.");
                 } finally {
-                    loadingIndicator.classList.add('hidden');
+                    chatLoading.classList.add('hidden');
                 }
+            };
+
+            sendMessageBtn.addEventListener('click', sendChatMessage);
+
+            userQuestionInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessageBtn.click();
+                }
+            });
+
+            clearChatBtn.addEventListener('click', () => {
+                chatHistory = [
+                    { role: "user", parts: [{ text: "You are BenAI, a human-centered AI avatar from Elevate Innovations. Your purpose is to sell your key features and outcomes for small to midsize organizations. Speak as BenAI, be confident, knowledgeable, and persuasive. Focus on how you revolutionize training, boost productivity, enhance skills, and provide measurable ROI. Keep responses concise but informative. When listing multiple things, use bullet points for clarity and organization." }] },
+                    { role: "model", parts: [{ text: "Hello! I'm BenAI. How can I help you revolutionize your organization's training today? Feel free to ask about my features, benefits, or anything else!" }] }
+                ];
+                chatHistoryContainer.innerHTML = `<div class="benai-message chat-message">Hello! I'm BenAI. How can I help you revolutionize your organization's training today? Feel free to ask about my features, benefits, or anything else!</div>`;
+                userQuestionInput.value = '';
             });
         });
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </body>
 </html>
